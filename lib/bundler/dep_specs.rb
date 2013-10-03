@@ -7,27 +7,25 @@ module Bundler
     NAME_PATTERN = /\A[0-9a-zA-Z_\-][0-9a-zA-Z_\-\.]*\Z/
     VERSION_PATTERN = /\A[0-9]+(?>\.[0-9a-zA-Z]+)*(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?\Z/
 
-    def initialize(source, names)
-      @source, @names = source, names
+    attr_reader :source_uri, :names
+
+    def initialize(source, source_uri = nil)
+      @source = source
+      @source_uri = source_uri || source.remotes.first
     end
 
-    def spec_index
-      @spec_index ||= Index.build do |i|
-        each_spec { |s| i << s }
+    def spec_index(names)
+      Index.build do |i|
+        each_spec(names) { |s| i << s }
       end
     end
+    alias_method :specs, :spec_index
 
-    def each_spec
-      fetch_specs
-
-      @names.each do |name|
+    def each_spec(names)
+      names.each do |name|
         raise "Sorry, #{name} is not a valid gem name" unless name =~ NAME_PATTERN
         each_spec_for(name) { |spec| yield spec }
       end
-    end
-
-    def fetch_specs
-      # not yet implemented
     end
 
   private
@@ -40,6 +38,7 @@ module Bundler
           spec.send("required_#{req.name}_version", req.requirement)
         end if reqs
         spec.source = @source
+        spec.source_uri = @source_uri
         yield spec
       end
     end
